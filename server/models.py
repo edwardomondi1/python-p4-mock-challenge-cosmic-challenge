@@ -26,8 +26,10 @@ class Planet(db.Model, SerializerMixin):
     nearest_star = db.Column(db.String)
 
     # Add relationship
+    missions = db.relationship('Mission', backref='planet', cascade='all, delete-orphan')
 
     # Add serialization rules
+    serialize_rules = ('-missions.scientist', '-missions.planet')
 
 
 class Scientist(db.Model, SerializerMixin):
@@ -38,10 +40,23 @@ class Scientist(db.Model, SerializerMixin):
     field_of_study = db.Column(db.String)
 
     # Add relationship
+    missions = db.relationship('Mission', backref='scientist', cascade='all, delete-orphan')
 
     # Add serialization rules
+    serialize_rules = ('-missions.scientist', '-missions.planet')
 
     # Add validation
+    @validates('name')
+    def validate_name(self, key, value):
+        if not value or value.strip() == '':
+            raise ValueError("Name must be present")
+        return value
+
+    @validates('field_of_study')
+    def validate_field_of_study(self, key, value):
+        if not value or value.strip() == '':
+            raise ValueError("Field of study must be present")
+        return value
 
 
 class Mission(db.Model, SerializerMixin):
@@ -51,10 +66,30 @@ class Mission(db.Model, SerializerMixin):
     name = db.Column(db.String)
 
     # Add relationships
+    scientist_id = db.Column(db.Integer, db.ForeignKey('scientists.id'))
+    planet_id = db.Column(db.Integer, db.ForeignKey('planets.id'))
 
     # Add serialization rules
+    serialize_rules = ('-scientist.missions', '-planet.missions')
 
     # Add validation
+    @validates('name')
+    def validate_name(self, key, value):
+        if not value or value.strip() == '':
+            raise ValueError("Name must be present")
+        return value
+
+    @validates('scientist_id')
+    def validate_scientist_id(self, key, value):
+        if value is None:
+            raise ValueError("Scientist ID must be present")
+        return value
+
+    @validates('planet_id')
+    def validate_planet_id(self, key, value):
+        if value is None:
+            raise ValueError("Planet ID must be present")
+        return value
 
 
 # add any models you may need.
